@@ -266,7 +266,7 @@ void runCommand(){
 					stop();
 					Serial.println("STAHP");
 					Serial3.println("STAHP");
-					logicState = 5;
+					logicState = 6;
 					break;
 
 		case	'n' : Serial.println("Restart");
@@ -292,6 +292,7 @@ void runCommand(){
 void rth(){
 	destinationloc = startpoint;
 }
+
 void sethome(){
 	startpoint = pos;
 }
@@ -315,6 +316,7 @@ void right(int power){
 	Serial2.write('R');
 	Serial2.write(power+'0');
 }
+
 void left(int power){
 	Serial2.write('L');
 	Serial2.write(power+'0');
