@@ -77,8 +77,8 @@ void setup() {
 hornbake.lat = 38.988075;
 hornbake.lon = -76.942629;
 hornbake.arr = 0;
-secondary.lat = ;
-secondary.lon = ;
+secondary.lat = 38.988053;
+secondary.lon = -76.942828;
 secondary.arr = 0;
 }
 
@@ -105,7 +105,7 @@ void loop() {
 				Serial.println("GPS Lock");
 				Serial3.println("GPS Lock");
 				Serial.println("My Location: "+String(gpsInfo.GPSLat,6) + " , " + String(gpsInfo.GPSLon,6));
-				logicState=2;	
+				logicState = 2;	
 			}else{
 				Serial.println("GPSerr");
 				Serial3.println("GPSerr");
@@ -116,8 +116,11 @@ void loop() {
 			Serial3.println("to3");
 			if(!hornbake.arr){
 				destinationloc = hornbake;
-			}else{
+			}else if(!secondary.arr){
 				destinationloc = secondary;
+			}else{
+				logicState = 5;
+				break;
 			}
 			logicState = 3;
 			Serial.println("to3");
@@ -139,17 +142,18 @@ void loop() {
 			runCommand();
 			nav();
 	  }break;
-	  case 4:{//end mission- do once home
-			//probably actuate some stuff
+	  case 4:{//After getting to targeted point
 			stop();
 			delay(50);
 			stop();
-			Serial3.println("Mission Done, duration");
-			Serial3.println((String)(millis()/1000));
-			//disable stuff
-			logicState=5;
+			logicState = 2;
 	  }break;
-	  case 5:delay(100);
+	  case 5: { Serial3.print("MISSION DONE");
+			stop();
+			Serial3.println((String)(millis()/1000));
+			logicState = 6;
+	  }break;
+	  case 6: delay(100);
 			runCommand();
 	  break;
   }
@@ -177,8 +181,8 @@ void nav(){
 		}
 	  break;
 	  case 2://Sample
-		Serial3.println("Mission Done");
-		Serial.println("Mission done");
+		Serial3.println("At point");
+		Serial.println("At point");
 		logicState = 4;
 	  break;
   }
@@ -345,7 +349,7 @@ void turntopoint(point target){//heading-current    direction-desired
 				left(6);
 			}
 		}else if(change<180){
-			right(2);
+			right(2);//I don't remember what this guy does
 		}
 		change = direction - getCompass();
 	}
