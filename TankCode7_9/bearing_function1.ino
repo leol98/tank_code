@@ -7,7 +7,7 @@ void bearing(float initlat, float initlong, float finallat, float finallong, flo
   finallong= finallong*(M_PI/180);
   float deltalong= finallong-initlong;
   float deltalat= finallat-initlat;
-  float R=6731;
+  float R=6371;
   float a= pow(sin(deltalat/2),2) + cos(initlat)*cos(finallat)*pow(sin(deltalong/2),2);
   float c=2*atan2(sqrt(a),sqrt(1-a));
   
