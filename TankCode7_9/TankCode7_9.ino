@@ -74,17 +74,17 @@ void setup() {
   Serial.println("Init:-");
   
  
-hornbake.lat = 38.988075;
-hornbake.lon = -76.942629;
-hornbake.arr = 0;
-secondary.lat = 38.988053;
-secondary.lon = -76.942828;
-secondary.arr = 0;
+	hornbake.lat = 38.988075;
+	hornbake.lon = -76.942629;
+	hornbake.arr = 0;
+	secondary.lat = 38.988053;
+	secondary.lon = -76.942828;
+	secondary.arr = 0;
 }
 
 void loop() {  
   //Sense Time
-	delay(1);  
+	delayMicroseconds(500);  
   preserve = gpsInfo;
   while (Serial1.available()){
    if (gps.encode(Serial1.read())){
@@ -114,11 +114,12 @@ void loop() {
 	  }break;
 	  case 2:{//receive Commands // Defaulted to Hornbake center for now
 			Serial3.println("to3");
-			if(!hornbake.arr){
+			if(hornbake.arr==0){
 				destinationloc = hornbake;
-			}else if(!secondary.arr){
+			}else if(secondary.arr==0){
 				destinationloc = secondary;
-			}else{
+			}
+			if((hornbake.arr==1)&&(secondary.arr==1)){
 				logicState = 5;
 				break;
 			}
@@ -145,6 +146,11 @@ void loop() {
 	  case 4:{//After getting to targeted point
 			stop();
 			delay(50);
+			if(hornbake.arr==0){
+				hornbake.arr=1;
+			}else if(secondary.arr==0){
+				secondary.arr=1;
+			}
 			stop();
 			logicState = 2;
 	  }break;
@@ -170,13 +176,10 @@ void nav(){
 		if(distance >= margin){
 			if(distance>20){
 				forward(9);
-				//Serial.println("Forward Fast "+(String)distance);//DELETE
 			}else if(distance>10){
 				forward(5);
-				//Serial.println("Forward Med  "+(String)distance);//DELETE
 			}else{
 				forward(3);
-				//Serial.println("Forward Med  "+(String)distance);//DELETE
 			}
 		}
 	  break;
@@ -216,10 +219,8 @@ GPSdata getGPS(){
 }
 
 void runCommand(){
-	//Serial.println("go");DELETE
 	int uplink;
 	String message;
-	//delay(10);
 	//UPLINK (GND-->Tank)
 	//Intake commands to be interpreted (might not work, TEST)
 	if(Serial3.available()>0){//Lets you send commands direct via USB
@@ -233,7 +234,7 @@ void runCommand(){
 		Serial.print("Error Message");
 		Serial3.print("Error Message");
 		String mes = Serial2.readString();
-		delay(50);
+		//delay(50);
 		Serial3.println(mes);
 		Serial.println(mes);
 	}
@@ -275,7 +276,7 @@ void runCommand(){
 					navState=1;
 					delay(500);break;
 
-		case	'g' : Serial.println("Toggle");
+		case	'g' : Serial.println("Toggle");//Toggle GPS stream output
 					Serial3.println("Toggle");
 					if(stream){
 						stream = 0;
@@ -351,7 +352,7 @@ void turntopoint(point target){//heading-current    direction-desired
 				left(6);
 			}
 		}else if(change<180){
-			right(2);//I don't remember what this guy does
+			right(1);//I don't remember what this guy does
 		}
 		change = direction - getCompass();
 	}
