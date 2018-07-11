@@ -15,5 +15,5 @@ void bearing(float initlat, float initlong, float finallat, float finallong, flo
   float Y= cos(initlat)*sin(finallat)-sin(initlat)*cos(finallat)*cos(deltalong);
   *distance=R*c*1000;
   *direction= atan2(X,Y)*180/M_PI;
-   *direction= fmod(direction+360,360);
+   *direction= fmod(*direction+360,360);
 }

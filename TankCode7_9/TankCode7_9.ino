@@ -42,6 +42,7 @@ GPSdata gpsInfo;
 GPSdata preserve;
 bool newData;
 bool stream;
+uint8_t stream2 = 0;
 
 //--- Active Variables
 Point startpoint;
@@ -54,6 +55,7 @@ Point **destinations;
 int logicState = 1;//1:init   2:recCmD   3:nav  4:Return/end
 
 int pointnum = 0;//Number of points being navigated between
+
 
 int counter=0;
 
@@ -79,7 +81,7 @@ void setup() {
 
 	destinations[0] = create_point(-76.942629, 38.988075, "hornbake");
 	destinations[1] = create_point(-76.942848, 38.988049, "home");
-  //38.988049, -76.942848
+	//38.988049, -76.942848
 	destinations[2] = NULL;
 }
 
@@ -118,6 +120,9 @@ void loop() {
 					 runCommand();
 					 logicState = 3;
 					 Serial.println("to3");
+					 delay(3000);
+					 sethome();
+
 				 }break;
 		case 3:{//Navigate
 					 if(gpsInfo.GPSSats<0){
@@ -135,11 +140,11 @@ void loop() {
 					 }
 					 runCommand();
 					 if(nav(destinations[pointnum])){
-						if(!destinations[++pointnum]){
-							logicState = 5;
-						}else{
-							logicState = 4;
-						}
+						 if(!destinations[++pointnum]){
+							 logicState = 5;
+						 }else{
+							 logicState = 4;
+						 }
 					 }
 				 }break;
 		case 4:{
@@ -147,7 +152,7 @@ void loop() {
 					 Serial3.print("Arrived to location " + String(pointnum));
 					 /*do whatever need to do at that point */
 					 delay(2000);
-          logicState = 2;
+					 logicState = 2;
 					 break;
 				 }
 		case 5: { Serial3.print("MISSION DONE");
@@ -156,7 +161,7 @@ void loop() {
 					  logicState = 6;
 				  }break;
 		case 6: delay(100);
-					Serial3.println("Whatever, nick is dumb");
+				  Serial3.println("Whatever, nick is unkown to Derrick");
 				  runCommand();
 				  free_point();/*should go somewhere else*/
 				  break;
@@ -170,7 +175,7 @@ int nav(Point *dest){
 		stop();
 		return 1;
 	}
-	
+
 	return 0;
 }
 
@@ -266,6 +271,9 @@ void runCommand(){
 							stream = 1;
 						}
 						delay(500);break;						
+		case 'a' : Serial3.println("Toggle data 2");
+					  stream2 ^= 1;
+					  break;
 
 		default	: break;
 	}
@@ -273,7 +281,10 @@ void runCommand(){
 
 ///---Nav Methods---///
 void rth(){
-	destinationloc = startpoint;
+	while(!nav(&startpoint)){
+		runCommand();
+	}
+	logicState = 6;
 }
 
 void sethome(){
@@ -293,6 +304,8 @@ void backward(int power){
 
 void stop(){
 	Serial2.write('S');
+	Serial2.write('S');
+	Serial2.write('S');
 }
 
 void right(int power){
@@ -308,15 +321,17 @@ void left(int power){
 void turntopoint(Point *target, float *distance, float *direction){//heading-current    direction-desired
 	bearing(pos.lat,pos.lon,target->lat, target->lon, distance, direction);
 
-	float compass_reading =getCompass()
+	float compass_reading =getCompass();
 
 	float change = *direction - compass_reading;
-	if(millis()>=(cur+1000)){
-		cur=millis();
-		Serial3.println("current location, " + String(pos.lat, 6) + "," + String(pos.lon, 6) + ",  " + "going toward" + String(target->name));
-		Serial3.println(String(*distance) + "m away");
-		Serial3.println("Direction: " + String(*direction, 6) + "    Compass reading: " + String(compass_reading, 6));
-		Serial3.println("Turning toward: " + String(change));
+	if(stream2){
+		if(millis()>=(cur+1000)){
+			cur=millis();
+			Serial3.println("current location, " + String(pos.lat, 6) + "," + String(pos.lon, 6) + ",  " + "going toward" + String(target->name));
+			Serial3.println(String(*distance) + "m away");
+			Serial3.println("Direction: " + String(*direction, 6) + "    Compass reading: " + String(compass_reading, 6));
+			Serial3.println("Turning toward: " + String(change));
+		}
 	}
 	if((abs(change)>5)&&(abs(change)<355)){
 		if((change>0)&&(change<=180)){
