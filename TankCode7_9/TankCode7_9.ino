@@ -115,7 +115,6 @@ void loop() {
 		case 2:{//receive Commands // Defaulted to Hornbake center for now
 					 Serial3.println("to3");
 					 runCommand();
-					delay(1000);
 					 logicState = 3;
 					 Serial.println("to3");
 				 }break;
@@ -138,10 +137,17 @@ void loop() {
 						if(!destinations[++pointnum]){
 							logicState = 5;
 						}else{
-							logicState = 2;
+							logicState = 4;
 						}
 					 }
 				 }break;
+		case 4:{
+					 stop();
+					 Serial3.print("Arrived to location%d", pointnum-1);
+					 /*do whatever need to do at that point */
+					 delay(1000);
+					 break;
+				 }
 		case 5: { Serial3.print("MISSION DONE");
 					  stop();
 					  Serial3.println((String)(millis()/1000));
@@ -149,7 +155,7 @@ void loop() {
 				  }break;
 		case 6: delay(100);
 				  runCommand();
-					free_point();/*should go somewhere else*/
+				  free_point();/*should go somewhere else*/
 				  break;
 	}
 }
@@ -367,7 +373,7 @@ void free_point(){
 	while(destinations[i]){
 		free(destinations[i]->name);
 		free(destinations[i]);
-			i++;
+		i++;
 	}
 	free(destinations);
 }
