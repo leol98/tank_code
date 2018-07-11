@@ -1,21 +1,23 @@
 /**
-Preliminary Code for running the tank
-Serial is USB interface
-Serial1 is GPS
-Serial2 is to Tank Controller board
-Serial3 is XBee
-t
-STAHP normally works but might not, mind your feet
-*/
+  Preliminary Code for running the tank
+  Serial is USB interface
+  Serial1 is GPS
+  Serial2 is to Tank Controller board
+  Serial3 is XBee
+  t
+  STAHP normally works but might not, mind your feet
+ */
 
 #include <Wire.h>
 #include <LSM303.h>
 #include <TinyGPS.h>
+#include <stdlib.h>
 
 #define XBeebaud 9600
 #define TankController 9600
 
 #define margin 3
+#define NUM_POINTS 2 /*default 2, can be manully input later */
 
 LSM303 compass;
 
@@ -23,203 +25,185 @@ LSM303 compass;
 TinyGPS gps;
 unsigned long cur=0;
 struct GPSdata{
-  float GPSLat=0;
-  float GPSLon=0;
-  unsigned long GPSTime=0;
-  long GPSAlt=0;
-  int GPSSats=-1;
+	float GPSLat=0;
+	float GPSLon=0;
+	unsigned long GPSTime=0;
+	long GPSAlt=0;
+	int GPSSats=-1;
 };
 
-struct point{
+typedef struct point{
 	float lat;
 	float lon;
-	bool arr;
-};
+	char *name;
+	int arr;
+} Point;
 GPSdata gpsInfo;
 GPSdata preserve;
 bool newData;
 bool stream;
 
 //--- Active Variables
-point startpoint;
-point destinationloc;
-point pos;//my pos
-float distance;
-float direction;
+Point startpoint;
+Point destinationloc;
+Point pos;//my pos
 //---
 
-point hornbake;
-point secondary;
+Point **destinations;
 
 int logicState = 1;//1:init   2:recCmD   3:nav  4:Return/end
-int navState=1;//1:toTarget   2:Sample
 
-int pointnum;//Number of points being navigated between
-point* points;
+int pointnum = 0;//Number of points being navigated between
 
 int counter=0;
 
 void motor_control(int, int);
 
+Point* create_point(float lon, float lat, char *name);
+
 void setup() {
-  Serial.begin(9600);
-  Serial1.begin(GPSbaud);
-  Serial3.begin(XBeebaud);
-  Serial2.begin(9600);
-  Wire.begin();
-  compass.init();
-  compass.enableDefault();
-  compass.m_min = (LSM303::vector<int16_t>){-32767, -32767, -32767};
-  compass.m_max = (LSM303::vector<int16_t>){+32767, +32767, +32767};
-  Serial.println("Init:-");
-  
- 
-	hornbake.lat = 38.988075;
-	hornbake.lon = -76.942629;
-	hornbake.arr = 0;
-	secondary.lat = 38.988053;
-	secondary.lon = -76.942828;
-	secondary.arr = 0;
+	int i = 0;
+	Serial.begin(9600);
+	Serial1.begin(GPSbaud);
+	Serial3.begin(XBeebaud);
+	Serial2.begin(9600);
+	Wire.begin();
+	compass.init();
+	compass.enableDefault();
+	compass.m_min = (LSM303::vector<int16_t>){-32767, -32767, -32767};
+	compass.m_max = (LSM303::vector<int16_t>){+32767, +32767, +32767};
+	Serial.println("Init:-");
+
+
+	destinations = calloc(NUM_POINTS + 1, sizeof(Point*));
+
+	destinations[0] = create_point(-76.942629, 38.988075, "hornbake");
+	destinations[1] = create_point(-76.942828, 38.988053, "home");
+	destinations[2] = null;
 }
 
 void loop() {  
-  //Sense Time
+	//Sense Time
 	delayMicroseconds(500);  
-  preserve = gpsInfo;
-  while (Serial1.available()){
-   if (gps.encode(Serial1.read())){
-     newData = true;
-	 gpsInfo = getGPS();
-	 pos.lat = gpsInfo.GPSLat;
-	 pos.lon = gpsInfo.GPSLon;
-	 break;
-   }
-  }
-  
-  switch(logicState){
-	  case 1:{//Init			
-		if(millis()>=(cur+1000)){
-			cur=millis();
-			Serial.println(gpsInfo.GPSSats);
-			if(gpsInfo.GPSSats>0){//Waits for 
-				Serial.println("GPS Lock");
-				Serial3.println("GPS Lock");
-				Serial.println("My Location: "+String(gpsInfo.GPSLat,6) + " , " + String(gpsInfo.GPSLon,6));
-				logicState = 2;	
-			}else{
-				Serial.println("GPSerr");
-				Serial3.println("GPSerr");
-			}
+	preserve = gpsInfo;
+	while (Serial1.available()){
+		if (gps.encode(Serial1.read())){
+			newData = true;
+			gpsInfo = getGPS();
+			pos.lat = gpsInfo.GPSLat;
+			pos.lon = gpsInfo.GPSLon;
+			break;
 		}
-	  }break;
-	  case 2:{//receive Commands // Defaulted to Hornbake center for now
-			Serial3.println("to3");
-			if(hornbake.arr==0){
-				destinationloc = hornbake;
-			}else if(secondary.arr==0){
-				destinationloc = secondary;
-			}
-			if((hornbake.arr==1)&&(secondary.arr==1)){
-				logicState = 5;
-				break;
-			}
-			logicState = 3;
-			Serial.println("to3");
-	  }break;
-	  case 3:{//Navigate
-			if(gpsInfo.GPSSats<0){
-				Serial.println("GPSLCKERR");
-			}else{
-				if(millis()>=(cur+1000)){
-					cur=millis();
-					if(stream){
-					Serial.println((String(gpsInfo.GPSLat,6) + "," + String(gpsInfo.GPSLon,6))+" , ");
-					Serial3.println((String(gpsInfo.GPSLat,6) + "," + String(gpsInfo.GPSLon,6))+" , ");
-					Serial3.println(getCompass());
-					Serial.println(getCompass());
-					}
-				}
-			}
-			runCommand();
-			nav();
-	  }break;
-	  case 4:{//After getting to targeted point
-			stop();
-			delay(50);
-			if(hornbake.arr==0){
-				hornbake.arr=1;
-			}else if(secondary.arr==0){
-				secondary.arr=1;
-			}
-			stop();
-			logicState = 2;
-	  }break;
-	  case 5: { Serial3.print("MISSION DONE");
-			stop();
-			Serial3.println((String)(millis()/1000));
-			logicState = 6;
-	  }break;
-	  case 6: delay(100);
-			runCommand();
-	  break;
-  }
+	}
+
+	switch(logicState){
+		case 1:{//Init			
+					 if(millis()>=(cur+1000)){
+						 cur=millis();
+						 Serial.println(gpsInfo.GPSSats);
+						 if(gpsInfo.GPSSats>0){//Waits for 
+							 Serial.println("GPS Lock");
+							 Serial3.println("GPS Lock");
+							 Serial.println("My Location: "+String(gpsInfo.GPSLat,6) + " , " + String(gpsInfo.GPSLon,6));
+							 logicState = 2;	
+						 }else{
+							 Serial.println("GPSerr");
+							 Serial3.println("GPSerr");
+						 }
+					 }
+				 }break;
+		case 2:{//receive Commands // Defaulted to Hornbake center for now
+					 Serial3.println("to3");
+					 if(hornbake.arr){
+						 destinationloc = secondary;
+					 }
+					 if((hornbake.arr==1)&&(secondary.arr==1)){
+						 logicState = 5;
+						 break;
+					 }
+					 logicState = 3;
+					 Serial.println("to3");
+				 }break;
+		case 3:{//Navigate
+					 if(gpsInfo.GPSSats<0){
+						 Serial.println("GPSLCKERR");
+					 }else{
+						 if(millis()>=(cur+1000)){
+							 cur=millis();
+							 if(stream){
+								 Serial.println((String(gpsInfo.GPSLat,6) + "," + String(gpsInfo.GPSLon,6))+" , ");
+								 Serial3.println((String(gpsInfo.GPSLat,6) + "," + String(gpsInfo.GPSLon,6))+" , ");
+								 Serial3.println(getCompass());
+								 Serial.println(getCompass());
+							 }
+						 }
+					 }
+					 runCommand();
+					 if(nav(&destinations[pointnum])){
+						if(!destinations[++pointnum]){
+							logicState = 5;
+						}
+					 }
+				 }break;
+		case 5: { Serial3.print("MISSION DONE");
+					  stop();
+					  Serial3.println((String)(millis()/1000));
+					  logicState = 6;
+				  }break;
+		case 6: delay(100);
+				  runCommand();
+				  break;
+	}
 }
 
-void nav(){
-	switch(navState){
-	  case 1://toTarget
-		if((distance < margin)&&(distance>0)){
-			navState=2;
-			stop();
+int nav(Point *dest){
+	float distance, direction;
+	turntopoint(&dest, &distance, &direction);
+	if((distance < margin)&&(distance>0)){
+		stop();
+		return 1;
+	}
+	if(distance >= margin){
+		if(distance>20){
+			forward(9);
+		}else if(distance>10){
+			forward(5);
+		}else{
+			forward(3);
 		}
-		turntopoint(destinationloc);
-		if(distance >= margin){
-			if(distance>20){
-				forward(9);
-			}else if(distance>10){
-				forward(5);
-			}else{
-				forward(3);
-			}
-		}
-	  break;
-	  case 2://Sample
-		Serial3.println("At point");
-		Serial.println("At point");
-		logicState = 4;
-	  break;
-  }
+	}
+	return 0
 }
 
 GPSdata getGPS(){
-  GPSdata gpsInfo;
-  newData = false;
-  unsigned long chars;
-  unsigned short sentences, failed;
+	GPSdata gpsInfo;
+	newData = false;
+	unsigned long chars;
+	unsigned short sentences, failed;
 
-  // For one second we parse GPS data and report some key values
-  unsigned long start = millis();
-  
-    float GPSLat, GPSLon;
-    int GPSSats;
-    long GPSAlt;
-    unsigned long date,fix_age,GPSTime;
-    gps.f_get_position(&GPSLat, &GPSLon, &fix_age);
-    GPSSats = gps.satellites();
-    gps.get_datetime(&date, &GPSTime, &fix_age);
-    GPSAlt = gps.altitude()/100.;
+	// For one second we parse GPS data and report some key values
+	unsigned long start = millis();
 
-    gpsInfo.GPSLat = GPSLat;
-    gpsInfo.GPSLon = GPSLon;
-    gpsInfo.GPSTime = GPSTime;
-    gpsInfo.GPSSats = GPSSats;
-    gpsInfo.GPSAlt = GPSAlt;
-  
-  return gpsInfo;
+	float GPSLat, GPSLon;
+	int GPSSats;
+	long GPSAlt;
+	unsigned long date,fix_age,GPSTime;
+	gps.f_get_position(&GPSLat, &GPSLon, &fix_age);
+	GPSSats = gps.satellites();
+	gps.get_datetime(&date, &GPSTime, &fix_age);
+	GPSAlt = gps.altitude()/100.;
+
+	gpsInfo.GPSLat = GPSLat;
+	gpsInfo.GPSLon = GPSLon;
+	gpsInfo.GPSTime = GPSTime;
+	gpsInfo.GPSSats = GPSSats;
+	gpsInfo.GPSAlt = GPSAlt;
+
+	return gpsInfo;
 }
 
 void runCommand(){
-	int uplink;
+	int uplink = 0;
 	String message;
 	//UPLINK (GND-->Tank)
 	//Intake commands to be interpreted (might not work, TEST)
@@ -238,53 +222,52 @@ void runCommand(){
 		Serial3.println(mes);
 		Serial.println(mes);
 	}
-	
+
 	//---
 	//The switch (predefined passthroughs n stuff)
 	switch(uplink){
 		case	't': Serial.println("TEST");
-						Serial3.println("TEST");
-						delay(1000);break;
-		
+					  Serial3.println("TEST");
+					  delay(1000);break;
+
 		case	'p':	message = (String(gpsInfo.GPSLat,6) + "," + String(gpsInfo.GPSLon,6));
 						Serial3.println(message);
 						Serial.println("P command");
 						Serial.println(message);
 						break;
-		
+
 		case	'r': rth();
-					Serial.println("RTH");
-					Serial3.println("RTH");
-					break;//return to home
-		
+					  Serial.println("RTH");
+					  Serial3.println("RTH");
+					  break;//return to home
+
 		case	'q': sethome();
-					Serial.println("HomeSet");
-					Serial3.println("HomeSet");
-					break;//return to home
-		
+					  Serial.println("HomeSet");
+					  Serial3.println("HomeSet");
+					  break;//return to home
+
 		case	's' : stop();
-					delay(50);
-					stop();
-					Serial.println("STAHP");
-					Serial3.println("STAHP");
-					logicState = 6;
-					break;
+						delay(50);
+						stop();
+						Serial.println("STAHP");
+						Serial3.println("STAHP");
+						logicState = 6;
+						break;
 
 		case	'n' : Serial.println("Restart");
-					Serial3.println("Restart");
-					logicState = 1;
-					navState=1;
-					delay(500);break;
+						Serial3.println("Restart");
+						logicState = 1;
+						delay(500);break;
 
 		case	'g' : Serial.println("Toggle");//Toggle GPS stream output
-					Serial3.println("Toggle");
-					if(stream){
-						stream = 0;
-					}else{
-						stream = 1;
-					}
-					delay(500);break;						
-				
+						Serial3.println("Toggle");
+						if(stream){
+							stream = 0;
+						}else{
+							stream = 1;
+						}
+						delay(500);break;						
+
 		default	: break;
 	}
 }
@@ -323,9 +306,9 @@ void left(int power){
 	Serial2.write(power+'0');
 }
 
-void turntopoint(point target){//heading-current    direction-desired
-	bearing(pos.lat,pos.lon,target.lat,target.lon, distance, direction);
-	float change = direction - getCompass();
+void turntopoint(Point *target, float *distance, float *dirction){//heading-current    direction-desired
+	bearing(pos.lat,pos.lon,target->lat, target->lon, distance, direction);
+	float change = *direction - getCompass();
 	if((abs(change)>5)&&(abs(change)<355)){
 		if((change>0)&&(change<=180)){
 			if(change<=30){
@@ -337,11 +320,11 @@ void turntopoint(point target){//heading-current    direction-desired
 			}
 		}else if(change>180){
 			if(change<195){
-				left(1);
-			}else if(change<270){
-				left(2);
-			}else{
 				left(6);
+			}else if(change<270){
+				left(4);
+			}else{
+				left(2);
 			}
 		}else if((change<0)&&(change>=-180)){
 			if(change>-30){
@@ -351,10 +334,10 @@ void turntopoint(point target){//heading-current    direction-desired
 			}else{
 				left(6);
 			}
-		}else if(change<180){
+		}else if(change<-180){
 			right(1);//I don't remember what this guy does
 		}
-		change = direction - getCompass();
+		change = *direction - getCompass();
 	}
 }
 
@@ -369,4 +352,24 @@ float getCompass(){
 	float t4 = compass.heading();
 	float heading = (t1+t2+t3+t4)/4.0;
 	return heading;
+}
+
+Point* create_point(float lon, float lat, char *name){
+	Point *tmp = calloc(1, sizeof(Point));
+	tmp->lat = lat;
+	tmp->lon = lon;
+	tmp->arr = 0;
+	tmp->name = calloc(strlen(name) + 1, 1);
+	strcpy(tmp->name, name);
+	return tmp;
+}
+
+void free_point(){
+	int i = 0;
+	while(destinations[i]){
+		free(destinations[i]->name);
+		free(destinations[i])
+			i++;
+	}
+	free(destinations);
 }

@@ -1,6 +1,6 @@
 #include <math.h>
 
-void bearing(float initlat, float initlong, float finallat, float finallong, float& distance, float& direction) {
+void bearing(float initlat, float initlong, float finallat, float finallong, float *distance, float *direction) {
   initlat= initlat*(M_PI/180);
   initlong= initlong*(M_PI/180);
   finallat= finallat*(M_PI/180);
@@ -13,6 +13,6 @@ void bearing(float initlat, float initlong, float finallat, float finallong, flo
   
   float X= cos(finallat)*sin(deltalong);
   float Y= cos(initlat)*sin(finallat)-sin(initlat)*cos(finallat)*cos(deltalong);
-  distance=R*c*1000;
-  direction= atan2(X,Y)*180/M_PI;
+  *distance=R*c*1000;
+  *direction= atan2(X,Y)*180/M_PI;
 }
