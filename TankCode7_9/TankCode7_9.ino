@@ -143,7 +143,7 @@ void loop() {
 				 }break;
 		case 4:{
 					 stop();
-					 Serial3.print("Arrived to location%d", pointnum-1);
+					 Serial3.print("Arrived to location%d" + String(pointnum-1));
 					 /*do whatever need to do at that point */
 					 delay(1000);
 					 break;
