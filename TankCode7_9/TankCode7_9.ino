@@ -79,7 +79,7 @@ void setup() {
 
 	destinations[0] = create_point(-76.942629, 38.988075, "hornbake");
 	destinations[1] = create_point(-76.942828, 38.988053, "home");
-	destinations[2] = null;
+	destinations[2] = NULL;
 }
 
 void loop() {  
@@ -114,13 +114,7 @@ void loop() {
 				 }break;
 		case 2:{//receive Commands // Defaulted to Hornbake center for now
 					 Serial3.println("to3");
-					 if(hornbake.arr){
-						 destinationloc = secondary;
-					 }
-					 if((hornbake.arr==1)&&(secondary.arr==1)){
-						 logicState = 5;
-						 break;
-					 }
+				
 					 logicState = 3;
 					 Serial.println("to3");
 				 }break;
@@ -139,7 +133,7 @@ void loop() {
 						 }
 					 }
 					 runCommand();
-					 if(nav(&destinations[pointnum])){
+					 if(nav(destinations[pointnum])){
 						if(!destinations[++pointnum]){
 							logicState = 5;
 						}
@@ -159,7 +153,7 @@ void loop() {
 
 int nav(Point *dest){
 	float distance, direction;
-	turntopoint(&dest, &distance, &direction);
+	turntopoint(dest, &distance, &direction);
 	if((distance < margin)&&(distance>0)){
 		stop();
 		return 1;
@@ -173,7 +167,7 @@ int nav(Point *dest){
 			forward(3);
 		}
 	}
-	return 0
+	return 0;
 }
 
 GPSdata getGPS(){
@@ -307,7 +301,7 @@ void left(int power){
 	Serial2.write(power+'0');
 }
 
-void turntopoint(Point *target, float *distance, float *dirction){//heading-current    direction-desired
+void turntopoint(Point *target, float *distance, float *direction){//heading-current    direction-desired
 	bearing(pos.lat,pos.lon,target->lat, target->lon, distance, direction);
 	float change = *direction - getCompass();
 	if((abs(change)>5)&&(abs(change)<355)){
@@ -369,7 +363,7 @@ void free_point(){
 	int i = 0;
 	while(destinations[i]){
 		free(destinations[i]->name);
-		free(destinations[i])
+		free(destinations[i]);
 			i++;
 	}
 	free(destinations);
