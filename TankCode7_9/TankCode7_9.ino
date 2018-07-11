@@ -81,7 +81,6 @@ void setup() {
 	destinations[1] = create_point(-76.942848, 38.988049, "home");
   //38.988049, -76.942848
 	destinations[2] = NULL;
-logicState = 3;
 }
 
 void loop() {  
