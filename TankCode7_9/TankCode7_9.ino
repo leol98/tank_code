@@ -322,30 +322,30 @@ void turntopoint(Point *target, float *distance, float *direction){//heading-cur
 	if((abs(change)>5)&&(abs(change)<355)){
 		if((change>0)&&(change<=180)){
 			if(change<=30){
-				right(1);
+				right(3);
 			}else if(change<90){
-				right(2);
+				right(5);
 			}else{
-				right(6);
+				right(7);
 			}
 		}else if(change>180){
 			if(change<195){
-				left(6);
+				left(7);
 			}else if(change<270){
-				left(4);
+				left(5);
 			}else{
-				left(2);
+				left(3);
 			}
 		}else if((change<0)&&(change>=-180)){
 			if(change>-30){
-				left(1);
+				left(3);
 			}else if(change>-90){
-				left(2);
+				left(5);
 			}else{
-				left(6);
+				left(7);
 			}
 		}else if((change<-180)&&(change>=-360)){
-			right(1);
+			right(3);
 		}
 	} else{
 		if(distance >= margin){
