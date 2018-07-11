@@ -114,7 +114,8 @@ void loop() {
 				 }break;
 		case 2:{//receive Commands // Defaulted to Hornbake center for now
 					 Serial3.println("to3");
-				
+					 runCommand();
+					delay(1000);
 					 logicState = 3;
 					 Serial.println("to3");
 				 }break;
@@ -136,6 +137,8 @@ void loop() {
 					 if(nav(destinations[pointnum])){
 						if(!destinations[++pointnum]){
 							logicState = 5;
+						}else{
+							logicState = 2;
 						}
 					 }
 				 }break;
