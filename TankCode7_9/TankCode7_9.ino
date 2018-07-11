@@ -306,7 +306,7 @@ void left(int power){
 }
 
 void turntopoint(Point *target, float *distance, float *direction){//heading-current    direction-desired
-	Serial3.println("heading toward" + String(target->lat) + "," + String(target->lon) + "  ");
+	Serial3.println("heading toward" + target->name + String(target->lat) + "," + String(target->lon) + "  ");
 	bearing(pos.lat,pos.lon,target->lat, target->lon, distance, direction);
 	Serial3.println(String(*distance) + "m away");
 	if(distance >= margin){
