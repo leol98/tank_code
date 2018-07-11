@@ -78,7 +78,8 @@ void setup() {
 	destinations = calloc(NUM_POINTS + 1, sizeof(Point*));
 
 	destinations[0] = create_point(-76.942629, 38.988075, "hornbake");
-	destinations[1] = create_point(-76.942828, 38.988053, "home");
+	destinations[1] = create_point(-76.942848, 38.988049, "home");
+  //38.988049, -76.942848
 	destinations[2] = NULL;
 }
 
@@ -143,9 +144,10 @@ void loop() {
 				 }break;
 		case 4:{
 					 stop();
-					 Serial3.print("Arrived to location%d" + String(pointnum-1));
+					 Serial3.print("Arrived to location " + String(pointnum));
 					 /*do whatever need to do at that point */
-					 delay(1000);
+					 delay(2000);
+          logicState = 2;
 					 break;
 				 }
 		case 5: { Serial3.print("MISSION DONE");
