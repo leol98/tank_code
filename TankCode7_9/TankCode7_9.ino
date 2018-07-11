@@ -81,6 +81,7 @@ void setup() {
 	destinations[1] = create_point(-76.942848, 38.988049, "home");
   //38.988049, -76.942848
 	destinations[2] = NULL;
+logicState = 3;
 }
 
 void loop() {  
@@ -306,24 +307,21 @@ void left(int power){
 }
 
 void turntopoint(Point *target, float *distance, float *direction){//heading-current    direction-desired
-	Serial3.println("heading toward" + target->name + String(target->lat) + "," + String(target->lon) + "  ");
 	bearing(pos.lat,pos.lon,target->lat, target->lon, distance, direction);
-	Serial3.println(String(*distance) + "m away");
-	if(distance >= margin){
-		if(distance>20){
-			forward(9);
-		}else if(distance>10){
-			forward(5);
-		}else{
-			forward(3);
-		}
+
+	float compass_reading =getCompass()
+
+	float change = *direction - compass_reading;
+	if(millis()>=(cur+1000)){
+		cur=millis();
+		Serial3.println("current location, " + String(pos.lat, 6) + "," + String(pos.lon, 6) + ",  " + "going toward" + String(target->name));
+		Serial3.println(String(*distance) + "m away");
+		Serial3.println("Direction: " + String(*direction, 6) + "    Compass reading: " + String(compass_reading, 6));
+		Serial3.println("Turning toward: " + String(change));
 	}
-	float change = *direction - getCompass();
-	Serial3.println("Turning toward: " + String(change));
 	if((abs(change)>5)&&(abs(change)<355)){
 		if((change>0)&&(change<=180)){
 			if(change<=30){
-turn_right:
 				right(1);
 			}else if(change<90){
 				right(2);
@@ -347,12 +345,18 @@ turn_right:
 				left(6);
 			}
 		}else if((change<-180)&&(change>=-360)){
-			change = change - 360;
-			goto turn_right;
-		}else{
-			Serial3.println("Turning error");
+			right(1);
 		}
-		change = *direction - getCompass();
+	} else{
+		if(distance >= margin){
+			if(distance>20){
+				forward(9);
+			}else if(distance>10){
+				forward(5);
+			}else{
+				forward(3);
+			}
+		}
 	}
 }
 
