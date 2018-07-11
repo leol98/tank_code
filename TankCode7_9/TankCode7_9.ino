@@ -156,6 +156,7 @@ void loop() {
 					  logicState = 6;
 				  }break;
 		case 6: delay(100);
+					Serial3.println("Whatever, nick is dumb");
 				  runCommand();
 				  free_point();/*should go somewhere else*/
 				  break;
@@ -169,15 +170,7 @@ int nav(Point *dest){
 		stop();
 		return 1;
 	}
-	if(distance >= margin){
-		if(distance>20){
-			forward(9);
-		}else if(distance>10){
-			forward(5);
-		}else{
-			forward(3);
-		}
-	}
+	
 	return 0;
 }
 
@@ -313,11 +306,24 @@ void left(int power){
 }
 
 void turntopoint(Point *target, float *distance, float *direction){//heading-current    direction-desired
+	Serial3.println("heading toward" + String(target->lat) + "," + String(target->lon) + "  ");
 	bearing(pos.lat,pos.lon,target->lat, target->lon, distance, direction);
+	Serial3.println(String(*distance) + "m away");
+	if(distance >= margin){
+		if(distance>20){
+			forward(9);
+		}else if(distance>10){
+			forward(5);
+		}else{
+			forward(3);
+		}
+	}
 	float change = *direction - getCompass();
+	Serial3.println("Turning toward: " + String(change));
 	if((abs(change)>5)&&(abs(change)<355)){
 		if((change>0)&&(change<=180)){
 			if(change<=30){
+turn_right:
 				right(1);
 			}else if(change<90){
 				right(2);
@@ -340,8 +346,11 @@ void turntopoint(Point *target, float *distance, float *direction){//heading-cur
 			}else{
 				left(6);
 			}
-		}else if(change<-180){
-			right(1);//I don't remember what this guy does
+		}else if((change<-180)&&(change>=-360)){
+			change = change - 360;
+			goto turn_right;
+		}else{
+			Serial3.println("Turning error");
 		}
 		change = *direction - getCompass();
 	}
