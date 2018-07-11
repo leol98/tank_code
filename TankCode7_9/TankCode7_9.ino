@@ -152,6 +152,7 @@ void loop() {
 				  }break;
 		case 6: delay(100);
 				  runCommand();
+					free_point();/*should go somewhere else*/
 				  break;
 	}
 }
