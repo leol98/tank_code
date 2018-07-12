@@ -17,7 +17,7 @@
 #define TankController 9600
 
 #define margin 3
-#define NUM_POINTS 2 /*default 2, can be manully input later */
+#define NUM_POINTS 5 /*default 2, can be manully input later */
 
 LSM303 compass;
 
@@ -78,11 +78,23 @@ void setup() {
 
 
 	destinations = calloc(NUM_POINTS + 1, sizeof(Point*));
-
-	destinations[0] = create_point(-76.942629, 38.988075, "hornbake");
-	destinations[1] = create_point(-76.942848, 38.988049, "home");
+/* 38.988084,-76.942411
+	38.987948,-76.942760
+	38.988211,-76.942624
+	38.987972,-76.942517
+ */
+	/*
+		destinations[0] = create_point(-76.942629, 38.988075, "hornbake");
+		destinations[1] = create_point(-76.942848, 38.988049, "home");
 	//38.988049, -76.942848
 	destinations[2] = NULL;
+	 */
+	destinations[0] = create_point(-76.942511, 38.988084, "p1");
+	destinations[1] = create_point(-76.942760, 38.987948, "p2");
+	destinations[2] = create_point(-76.942624, 38.988211, "p3");
+	destinations[3] = create_point(-76.942517, 38.987972, "p4");
+	destinations[4] = create_point(-76.942848, 38.988049, "p1");
+	destinations[5] = NULL;
 }
 
 void loop() {  
