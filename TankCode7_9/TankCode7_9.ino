@@ -74,10 +74,9 @@ void setup() {
 	compass.enableDefault();
 	compass.m_min = (LSM303::vector<int16_t>){-32767, -32767, -32767};
 	compass.m_max = (LSM303::vector<int16_t>){+32767, +32767, +32767};
-	Serial.println("Init:-");
+	Serial3.println("Init:-");
 
 
-	destinations = calloc(NUM_POINTS + 1, sizeof(Point*));
 /* 38.988084,-76.942411
 	38.987948,-76.942760
 	38.988211,-76.942624
@@ -89,12 +88,6 @@ void setup() {
 	//38.988049, -76.942848
 	destinations[2] = NULL;
 	 */
-	destinations[0] = create_point(-76.942511, 38.988084, "p1");
-	destinations[1] = create_point(-76.942760, 38.987948, "p2");
-	destinations[2] = create_point(-76.942624, 38.988211, "p3");
-	destinations[3] = create_point(-76.942517, 38.987972, "p4");
-	destinations[4] = create_point(-76.942848, 38.988049, "p1");
-	destinations[5] = NULL;
 }
 
 void loop() {  
@@ -113,20 +106,16 @@ void loop() {
 
 	switch(logicState){
 		case 1:{//Init			
-					 if(millis()>=(cur+1000)){
-						 cur=millis();
-						 Serial.println(gpsInfo.GPSSats);
-						 if(gpsInfo.GPSSats>0){//Waits for 
-							 Serial.println("GPS Lock");
-							 Serial3.println("GPS Lock");
-							 Serial.println("My Location: "+String(gpsInfo.GPSLat,6) + " , " + String(gpsInfo.GPSLon,6));
-							 logicState = 2;	
-						 }else{
-							 Serial.println("GPSerr");
-							 Serial3.println("GPSerr");
-						 }
-					 }
-				 }break;
+					 destinations = calloc(NUM_POINTS + 1, sizeof(Point*));
+					 destinations[0] = create_point(-76.942511, 38.988084, "p1");
+					 destinations[1] = create_point(-76.942760, 38.987948, "p2");
+					 destinations[2] = create_point(-76.942624, 38.988211, "p3");
+					 destinations[3] = create_point(-76.942517, 38.987972, "p4");
+					 destinations[4] = create_point(-76.942848, 38.988049, "p1");
+					 destinations[5] = NULL;
+					pointnum = 0;
+					logicState = 7;
+					
 		case 2:{//receive Commands // Defaulted to Hornbake center for now
 					 Serial3.println("to3");
 					 runCommand();
@@ -174,9 +163,28 @@ void loop() {
 				  }break;
 		case 6: delay(100);
 				  Serial3.println("Whatever, nick is unkown to Derrick");
-				  runCommand();
 				  free_point();/*should go somewhere else*/
+					logicState = 8;
 				  break;
+		case 7:
+
+				  if(millis()>=(cur+1000)){
+					  cur=millis();
+					  Serial.println(gpsInfo.GPSSats);
+					  if(gpsInfo.GPSSats>0){//Waits for 
+						  Serial.println("GPS Lock");
+						  Serial3.println("GPS Lock");
+						  Serial.println("My Location: "+String(gpsInfo.GPSLat,6) + " , " + String(gpsInfo.GPSLon,6));
+						  logicState = 2;	
+					  }else{
+						  Serial.println("GPSerr");
+						  Serial3.println("GPSerr");
+					  }
+				  }
+				 }break;
+		case 8:
+				 runCommand();
+				 break;
 	}
 }
 
@@ -348,27 +356,27 @@ void turntopoint(Point *target, float *distance, float *direction){//heading-cur
 	if((abs(change)>5)&&(abs(change)<355)){
 		if((change>0)&&(change<=180)){
 			if(change<=30){
-				right(3);
+				right(2);
 			}else if(change<90){
-				right(5);
+				right(4);
 			}else{
-				right(7);
+				right(6);
 			}
 		}else if(change>180){
 			if(change<195){
-				left(7);
+				left(6);
 			}else if(change<270){
-				left(5);
+				left(4);
 			}else{
-				left(3);
+				left(2);
 			}
 		}else if((change<0)&&(change>=-180)){
 			if(change>-30){
-				left(3);
+				left(2);
 			}else if(change>-90){
-				left(5);
+				left(4);
 			}else{
-				left(7);
+				left(6);
 			}
 		}else if((change<-180)&&(change>=-360)){
 			right(3);
@@ -376,7 +384,7 @@ void turntopoint(Point *target, float *distance, float *direction){//heading-cur
 	} else{
 		if(distance >= margin){
 			if(distance>20){
-				forward(6);
+				forward(7);
 			}else if(distance>10){
 				forward(4);
 			}else{
