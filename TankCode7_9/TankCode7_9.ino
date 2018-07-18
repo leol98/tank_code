@@ -376,11 +376,11 @@ void turntopoint(Point *target, float *distance, float *direction){//heading-cur
 	} else{
 		if(distance >= margin){
 			if(distance>20){
-				forward(9);
+				forward(6);
 			}else if(distance>10){
-				forward(5);
+				forward(4);
 			}else{
-				forward(3);
+				forward(2);
 			}
 		}
 	}
