@@ -56,8 +56,10 @@ int logicState = 1;//1:init   2:recCmD   3:nav  4:Return/end
 
 int pointnum = 0;//Number of points being navigated between
 
+static uint8_t forwarding = 0;
 
-int counter=0;
+
+static int counter=0;
 
 void motor_control(int, int);
 
@@ -77,14 +79,12 @@ void setup() {
 	Serial3.println("Init:-");
 
 
-/* 38.988084,-76.942411
-	38.987948,-76.942760
-	38.988211,-76.942624
-	38.987972,-76.942517
- */
+	/* 38.988084,-76.942411
+		38.987948,-76.942760
+		38.988211,-76.942624
+		38.987972,-76.942517
+	 */
 	/*
-		destinations[0] = create_point(-76.942629, 38.988075, "hornbake");
-		destinations[1] = create_point(-76.942848, 38.988049, "home");
 	//38.988049, -76.942848
 	destinations[2] = NULL;
 	 */
@@ -107,80 +107,90 @@ void loop() {
 	switch(logicState){
 		case 1:{//Init			
 					 destinations = calloc(NUM_POINTS + 1, sizeof(Point*));
-					 destinations[0] = create_point(-76.942511, 38.988084, "p1");
+		destinations[0] = create_point(-76.942629, 38.988075, "hornbake");
+		destinations[1] = create_point(-76.942848, 38.988049, "home");
+		destinations[2] = create_point(-76.942629, 38.988075, "hornbake");
+		destinations[3] = create_point(-76.942848, 38.988049, "home");
+		destinations[4] = create_point(-76.942629, 38.988075, "hornbake");
+					 /*destinations[0] = create_point(-76.942511, 38.988084, "p1");
 					 destinations[1] = create_point(-76.942760, 38.987948, "p2");
 					 destinations[2] = create_point(-76.942624, 38.988211, "p3");
 					 destinations[3] = create_point(-76.942517, 38.987972, "p4");
-					 destinations[4] = create_point(-76.942848, 38.988049, "p1");
+					 destinations[4] = create_point(-76.942848, 38.988049, "p1");*/
 					 destinations[5] = NULL;
-					pointnum = 0;
-					logicState = 7;
-					
-		case 2:{//receive Commands // Defaulted to Hornbake center for now
-					 Serial3.println("to3");
-					 runCommand();
-					 logicState = 3;
-					 Serial.println("to3");
-					 delay(3000);
-					 sethome();
+					 pointnum = 0;
+					 logicState = 7;
+						counter = 0;
+break;
 
-				 }break;
-		case 3:{//Navigate
-					 if(gpsInfo.GPSSats<0){
-						 Serial.println("GPSLCKERR");
-					 }else{
-						 if(millis()>=(cur+1000)){
-							 cur=millis();
-							 if(stream){
-								 Serial.println((String(gpsInfo.GPSLat,6) + "," + String(gpsInfo.GPSLon,6))+" , ");
-								 Serial3.println((String(gpsInfo.GPSLat,6) + "," + String(gpsInfo.GPSLon,6))+" , ");
-								 Serial3.println(getCompass());
-								 Serial.println(getCompass());
-							 }
-						 }
-					 }
-					 runCommand();
-					 if(nav(destinations[pointnum])){
-						 if(!destinations[++pointnum]){
-							 logicState = 5;
-						 }else{
-							 logicState = 4;
-						 }
-					 }
-				 }break;
-		case 4:{
-					 stop();
-					 Serial3.print("Arrived to location " + String(pointnum));
-					 /*do whatever need to do at that point */
-					 delay(2000);
-					 logicState = 2;
-					 break;
-				 }
-		case 5: { Serial3.print("MISSION DONE");
-					  stop();
-					  Serial3.println((String)(millis()/1000));
-					  logicState = 6;
-				  }break;
-		case 6: delay(100);
-				  Serial3.println("Whatever, nick is unkown to Derrick");
-				  free_point();/*should go somewhere else*/
-					logicState = 8;
-				  break;
-		case 7:
+					 case 2:{//receive Commands // Defaulted to Hornbake center for now
+								  Serial3.println("to3");
+								  runCommand();
+								  logicState = 3;
+								  Serial.println("to3");
+								  delay(3000);
+								  sethome();
 
-				  if(millis()>=(cur+1000)){
-					  cur=millis();
-					  Serial.println(gpsInfo.GPSSats);
-					  if(gpsInfo.GPSSats>0){//Waits for 
-						  Serial.println("GPS Lock");
-						  Serial3.println("GPS Lock");
-						  Serial.println("My Location: "+String(gpsInfo.GPSLat,6) + " , " + String(gpsInfo.GPSLon,6));
-						  logicState = 2;	
-					  }else{
-						  Serial.println("GPSerr");
-						  Serial3.println("GPSerr");
-					  }
-				  }
+							  }break;
+					 case 3:{//Navigate
+								  if(gpsInfo.GPSSats<0){
+									  Serial.println("GPSLCKERR");
+								  }else{
+									  if(millis()>=(cur+1000)){
+										  cur=millis();
+										  if(stream){
+											  Serial.println(String(gpsInfo.GPSLat,6) + "," + String(gpsInfo.GPSLon,6)+" , ");
+											  Serial3.println(String(counter)+ ", " + String(gpsInfo.GPSLat,6) + ", " + String(gpsInfo.GPSLon,6)+" , ");
+												counter++;
+											  /*Serial3.println(getCompass());
+											  Serial.println(getCompass());*/
+										  }
+									  }
+								  }
+								  runCommand();
+								  if(nav(destinations[pointnum])){
+									  forwarding = 0;
+									  if(!destinations[++pointnum]){
+										  logicState = 5;
+									  }else{
+										  logicState = 4;
+									  }
+								  }
+							  }break;
+					 case 4:{
+								  stop();
+								  Serial3.print("Arrived to location " + String(pointnum));
+								  /*do whatever need to do at that point */
+								  delay(2000);
+								  logicState = 2;
+								  break;
+							  }
+					 case 5: { Serial3.print("MISSION DONE");
+									stop();
+									Serial3.println((String)(millis()/1000));
+									logicState = 6;
+								}break;
+					 case 6: delay(100);
+stop:
+								Serial3.println("Whatever, nick is unkown to Derrick");
+								free_point();/*should go somewhere else*/
+								logicState = 8;
+								break;
+					 case 7:
+
+								if(millis()>=(cur+1000)){
+									cur=millis();
+									Serial.println(gpsInfo.GPSSats);
+									if(gpsInfo.GPSSats>0){//Waits for 
+										Serial.println("GPS Lock");
+										Serial3.println("GPS Lock");
+										Serial.println("My Location: "+String(gpsInfo.GPSLat,6) + " , " + String(gpsInfo.GPSLon,6));
+										logicState = 2;	
+									}else{
+										Serial.println("GPSerr");
+										Serial3.println("GPSerr");
+									}
+								}
 				 }break;
 		case 8:
 				 runCommand();
@@ -238,15 +248,15 @@ void runCommand(){
 		Serial.print("Xbee Command: ");
 		uplink = Serial.read();
 	}
-	if(Serial2.available()>0){//Over Xbee
+	/*	if(Serial2.available()>0){//Over Xbee
 		Serial.print("Error Message");
 		Serial3.print("Error Message");
 		String mes = Serial2.readString();
-		//delay(50);
-		Serial3.println(mes);
-		Serial.println(mes);
+	//delay(50);
+	Serial3.println(mes);
+	Serial.println(mes);
 	}
-
+	 */
 	//---
 	//The switch (predefined passthroughs n stuff)
 	switch(uplink){
@@ -301,8 +311,9 @@ void runCommand(){
 
 ///---Nav Methods---///
 void rth(){
-	while(!nav(&startpoint)){
+	while(!nav(&startpoint) && (logicState != 6)){
 		runCommand();
+		
 	}
 	logicState = 6;
 }
@@ -355,40 +366,57 @@ void turntopoint(Point *target, float *distance, float *direction){//heading-cur
 	}
 	if((abs(change)>5)&&(abs(change)<355)){
 		if((change>0)&&(change<=180)){
-			if(change<=30){
-				right(2);
-			}else if(change<90){
-				right(4);
+			if(forwarding){
+				right(1);
 			}else{
-				right(6);
+				if(change<=30){
+					right(2);
+				}else if(change<90){
+					right(3);
+				}else{
+					right(4);
+				}
 			}
 		}else if(change>180){
-			if(change<195){
-				left(6);
-			}else if(change<270){
-				left(4);
+			if(forwarding){
+				left(1);
 			}else{
-				left(2);
+				if(change<195){
+					left(4);
+				}else if(change<270){
+					left(3);
+				}else{
+					left(2);
+				}
 			}
 		}else if((change<0)&&(change>=-180)){
-			if(change>-30){
-				left(2);
-			}else if(change>-90){
-				left(4);
+			if(forwarding){
+				left(1);
 			}else{
-				left(6);
+				if(change>-30){
+					left(2);
+				}else if(change>-90){
+					left(3);
+				}else{
+					left(4);
+				}
 			}
 		}else if((change<-180)&&(change>=-360)){
-			right(3);
-		}
-	} else{
-		if(distance >= margin){
-			if(distance>20){
-				forward(7);
-			}else if(distance>10){
-				forward(4);
+			if(forwarding){
+				right(1);
 			}else{
-				forward(2);
+				right(2);
+			}
+		}
+	}else{
+		if(distance >= margin){
+			forwarding = 1;
+			if(distance>20){
+				forward(6);
+			}else if(distance>10){
+				forward(5);
+			}else{
+				forward(4);
 			}
 		}
 	}
